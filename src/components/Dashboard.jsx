@@ -1,4 +1,8 @@
 import React from 'react';
+import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
+
 import {
   BarChart,
   Bar,
@@ -11,27 +15,91 @@ import {
 } from 'recharts';
 
 const Dashboard = () => {
+  const [stats, setStats] = useState([]);
+const [chartData, setChartData] = useState([]);
+
   // Mock Data to simulate your Firebase results
-  const stats = [
-    { label: 'Status: Completed', value: 0, color: 'text-gray-800' },
-    { label: 'Status: Pending', value: 0, color: 'text-gray-800' },
-    { label: 'Status: Hold', value: 0, color: 'text-gray-800' },
-    { label: 'Total Complaints', value: 0, color: 'text-gray-800' },
+  // const stats = [
+  //   { label: 'Status: Completed', value: 0, color: 'text-gray-800' },
+  //   { label: 'Status: Pending', value: 0, color: 'text-gray-800' },
+  //   { label: 'Status: Hold', value: 0, color: 'text-gray-800' },
+  //   { label: 'Total Complaints', value: 0, color: 'text-gray-800' },
+  // ];
+
+  // const chartData = [
+  //   { name: 'SOLAR', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'RWS', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'PROJECT', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'OPERATION', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'PUMP', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'CCWS', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'HWS SERVICE', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'MAINTANCE', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'INDUSTRY', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'HWS', Completed: 0, Pending: 0, Hold: 0 },
+  //   { name: 'Division', Completed: 0, Pending: 0, Hold: 0 },
+  // ];
+
+const calculateStats = (data) => {
+  const completed = data.filter(c => c.status === "Completed").length;
+  const pending = data.filter(c => c.status === "Pending").length;
+  const hold = data.filter(c => c.status === "Hold").length;
+
+  return [
+    { label: "Status: Completed", value: completed },
+    { label: "Status: Pending", value: pending },
+    { label: "Status: Hold", value: hold },
+    { label: "Total Complaints", value: data.length },
+  ];
+};
+
+const calculateChartData = (data) => {
+  const divisions = [
+    "SOLAR", "RWS", "PROJECT", "OPERATION", "PUMP",
+    "CCWS", "HWS SERVICE", "MAINTANCE",
+    "INDUSTRY", "HWS", "Division"
   ];
 
-  const chartData = [
-    { name: 'SOLAR', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'RWS', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'PROJECT', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'OPERATION', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'PUMP', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'CCWS', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'HWS SERVICE', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'MAINTANCE', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'INDUSTRY', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'HWS', Completed: 0, Pending: 0, Hold: 0 },
-    { name: 'Division', Completed: 0, Pending: 0, Hold: 0 },
-  ];
+  return divisions.map(div => {
+    const filtered = data.filter(c => c.product === div);
+
+    return {
+      name: div,
+      Completed: filtered.filter(c => c.status === "Completed").length,
+      Pending: filtered.filter(c => c.status === "Pending").length,
+      Hold: filtered.filter(c => c.status === "Hold").length,
+    };
+  });
+};
+
+
+const loadDashboardData = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, "complaints"));
+
+    const complaints = snapshot.docs.map(doc => ({
+      id: doc.id,
+      status: doc.data().status || "Pending",
+      product: doc.data().product,
+    }));
+
+    // ✅ Calculate first
+    const statsResult = calculateStats(complaints);
+    const chartResult = calculateChartData(complaints);
+
+    // ✅ Single render update
+    setStats(statsResult);
+    setChartData(chartResult);
+
+  } catch (error) {
+    console.error("Dashboard fetch error:", error);
+  }
+};
+
+  useEffect(() => {
+  loadDashboardData();
+}, []);
+
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] p-4 font-sans">
