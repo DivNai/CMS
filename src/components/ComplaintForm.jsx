@@ -1,5 +1,6 @@
 // src/components/ComplaintForm.jsx
 import React, { useState } from 'react';
+import { submitComplaint } from '../backend/complaintService';
 
 const ComplaintForm = () => {
   const [formData, setFormData] = useState({
@@ -29,11 +30,21 @@ const ComplaintForm = () => {
     setFiles((prev) => ({ ...prev, [name]: files[0] }));
   };
 
-  const handleSubmit = (e) => {
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
+  //   console.log("Form Data:", formData);
+  //   console.log("Files:", files);
+  //   alert("Form submitted successfully!");
+  // };
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
-    console.log("Files:", files);
-    alert("Form submitted successfully!");
+    try {
+      await submitComplaint(formData, files);
+      alert("✅ Complaint submitted");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Submission failed");
+    }
   };
 
   const handleReset = () => {
